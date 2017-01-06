@@ -13,7 +13,11 @@ Adafruit_NeoPixel strip =
 const uint8_t MARQUEE_LETTERS[] = {0, 1, 2, 2, 2, 1};
 const uint32_t MARQUEE_COLOR = strip.Color(255, 255, 0);
 #define MARQUEE_DELAY 100 // milliseconds between frames
-const uint8_t MARQUEE_LETTER_COUNT = sizeof(MARQUEE_LETTERS) / sizeof(MARQUEE_LETTERS[0]);
+const uint8_t MARQUEE_LETTER_COUNT =
+    sizeof(MARQUEE_LETTERS) / sizeof(MARQUEE_LETTERS[0]);
+
+#define COLORS_SPEED_DIVISOR 20 // higher value means slower
+#define COLORS_DURATION 5000 // milliseconds until we change to the next mode
 
 void setup() {
   strip.begin();
@@ -30,7 +34,6 @@ public:
   // if loop returns a true, it means that this mode is done
   virtual bool loop() { return NULL; };
   virtual void enter(){}; // called when the state is entered
-  virtual void leave(){}; // called when the state is left
 protected:
   // sets the color for the given coordinates.
   // negative/out of bounds values are allowed and ignored.
@@ -46,24 +49,18 @@ protected:
 class MarqueeMode : public Mode {
 public:
   void enter() {
-    // initialize the position
-    reset_position();
-  }
-  void reset_position() {
     // we start with the letters beyond the screen on the right
     position = HAT_WIDTH;
   }
-
   bool loop() {
     strip.clear();
-    uint32_t color = strip.Color(255, 0, 0);
     for (int i = 0; i < MARQUEE_LETTER_COUNT; i++) {
       drawLetter(position + i * 8, MARQUEE_LETTERS[i], MARQUEE_COLOR);
     }
     strip.show();
     position--;
     if (position < (-(int)MARQUEE_LETTER_COUNT * 8))
-      reset_position();
+      return true;
     delay(MARQUEE_DELAY);
     return false;
   }
@@ -91,15 +88,94 @@ private:
   int position;
 };
 
-MarqueeMode marquee_mode_instance = MarqueeMode();
-Mode *current_mode = NULL;
-// Mode* mode_sequence
-void loop() {
-  if (current_mode == NULL) {
-    current_mode = &marquee_mode_instance;
-    current_mode->enter();
+class AnimationMode : public Mode {
+public:
+  void enter() {
+    // we start with the letters beyond the screen on the right
+    position = HAT_WIDTH;
   }
 
-  // bool mode_done = current_mode->loop();
-  // if
+  bool loop() {
+    strip.clear();
+    uint32_t color = strip.Color(255, 0, 0);
+    // TODO
+    return true;
+    delay(100);
+    return false;
+  }
+
+private:
+  int position;
+};
+
+class ColorsMode : public Mode {
+public:
+  void enter() {
+    // remember when we started
+    start_millis = millis();
+  }
+
+  bool loop() {
+    fill_all(hue_to_rgb((millis() / COLORS_SPEED_DIVISOR % 360)));
+    strip.show();
+    delay(50);
+    if ((millis() - start_millis) > COLORS_DURATION)
+      return true;
+    return false;
+  }
+
+protected:
+  // converts a HSV to RGB values. For optimization we assume full S and full V.
+  // hue is between 0.0 and 1.0.
+  // for conversion for:
+  // - http://www.rapidtables.com/convert/color/hsv-to-rgb.htm
+  // - http://en.wikipedia.org/wiki/HSL_and_HSV#From_HSV
+  uint32_t hue_to_rgb(uint16_t hue) {
+    // uint8_t h = hue / 60;
+    // float x = 1 - abs(fmod(hue / 60.0, 2.0) - 1);
+    // uint8_t xi = x * 255;
+
+    uint8_t h = hue / 60;
+    uint16_t x = 255 * (1 - abs(fmod(hue / 60.0, 2.0) - 1));
+
+    switch (h) {
+    case 0:
+      return strip.Color(255, x, 0);
+    case 1:
+      return strip.Color(x, 255, 0);
+    case 2:
+      return strip.Color(0, 255, x);
+    case 3:
+      return strip.Color(0, x, 255);
+    case 4:
+      return strip.Color(x, 0, 255);
+    default:
+      return strip.Color(255, 0, x);
+    }
+  }
+  
+  void fill_all(uint32_t color) {
+    for (int i = 0; i < STRIP_WIDTH; i++) {
+      strip.setPixelColor(i, color);
+    }
+  }
+private:
+  unsigned long start_millis;
+};
+
+MarqueeMode marquee_mode_instance = MarqueeMode();
+AnimationMode animation_mode_instance = AnimationMode();
+ColorsMode colors_mode_instance = ColorsMode();
+Mode *mode_sequence[] = {&colors_mode_instance, &marquee_mode_instance,
+                         &animation_mode_instance};
+
+bool mode_was_done = true;
+short current_mode_index = -1;
+void loop() {
+  if (mode_was_done) {
+    current_mode_index = (current_mode_index + 1) %
+                         (sizeof(mode_sequence) / sizeof(mode_sequence[0]));
+    mode_sequence[current_mode_index]->enter();
+  }
+  mode_was_done = mode_sequence[current_mode_index]->loop();
 }
