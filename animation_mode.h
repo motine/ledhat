@@ -6,10 +6,10 @@
 #define ANIMATION_FRAME_DELAY 500
 
 const uint32_t COLORS_COLORS[4] = {
-  strip.Color(0, 0, 0),
-  strip.Color(255, 255, 0),
-  strip.Color(255, 0, 255),
-  strip.Color(0, 0, 255) };
+  strip.Color(0, 0, 0), // 00
+  strip.Color(255, 255, 0), // 01
+  strip.Color(255, 0, 255), // 10
+  strip.Color(0, 0, 255) };  // 11
 
 const uint8_t FRAMES[][8][8] = { // n frames with 8x32 pixels each (but each pixel has 2 bits)
       { // frame
