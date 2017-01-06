@@ -1,24 +1,78 @@
 #ifndef ANIMATION_MODE_H
 #define ANIMATION_MODE_H
 
+#include "strip.h"
+
+#define ANIMATION_FRAME_DELAY 500
+
+const uint32_t COLORS_COLORS[4] = {
+  strip.Color(0, 0, 0),
+  strip.Color(255, 255, 0),
+  strip.Color(255, 0, 255),
+  strip.Color(0, 0, 255) };
+
+const uint8_t FRAMES[][8][8] = { // n frames with 8x32 pixels each (but each pixel has 2 bits)
+      { // frame
+        {B01001000, B11000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000}, // row
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000}
+      },
+      {
+        {B01001000, B11000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B01001000, B11000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000}
+      },
+      {
+        {B01001000, B11000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B01001000, B11000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B01111000, B11000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
+        {B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000}
+      }
+};
+
+unsigned int frame_count = sizeof(FRAMES) / sizeof(FRAMES[0]);
+
 class AnimationMode : public Mode {
 public:
   void enter() {
     // we start with the letters beyond the screen on the right
-    position = HAT_WIDTH;
+    frame_index = 0;
   }
 
   bool loop() {
-    strip.clear();
-    uint32_t color = strip.Color(255, 0, 0);
-    // TODO
-    return true;
-    delay(100);
+    for (int y = 0; y < 8; y++) {
+      for (int x = 0; x < 32; x++) {
+        uint8_t group_index = x / 4; // a pixel group is one byte (containing 4 pixel)
+        uint8_t position_in_group = x % 4; // 0..3
+        uint8_t group_value = FRAMES[frame_index][y][group_index];
+        uint8_t pixel_color_index = (group_value >> (2 * (3 - position_in_group))) & B00000011;
+        setPixel(x, y, COLORS_COLORS[pixel_color_index]);
+      }
+    }
+    strip.show();
+    delay(ANIMATION_FRAME_DELAY);
+    frame_index++;
+    if (frame_index >= frame_count)
+      return true;
     return false;
   }
 
 private:
-  int position;
+  int frame_index;
 };
 
 #endif

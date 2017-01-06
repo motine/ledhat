@@ -1,6 +1,11 @@
 #ifndef COLORS_MODE_H
 #define COLORS_MODE_H
 
+#include "strip.h"
+
+#define COLORS_SPEED_DIVISOR 20 // higher value means slower
+#define COLORS_DURATION 5000    // milliseconds until we change to the next mode
+
 class ColorsMode : public Mode {
 public:
   void enter() {
