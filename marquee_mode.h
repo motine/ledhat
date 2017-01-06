@@ -1,6 +1,13 @@
 #ifndef MARQUEE_MODE_H
 #define MARQUEE_MODE_H
 
+#include "strip.h"
+
+const uint8_t MARQUEE_LETTERS[] = {0, 1, 2, 2, 2, 1};
+const uint32_t MARQUEE_COLOR = strip.Color(255, 255, 0);
+#define MARQUEE_DELAY 100 // milliseconds between frames
+#define MARQUEE_LETTER_SPACING 1 // leave this many pixels space between letters
+
 class MarqueeMode : public Mode {
 public:
   void enter() {
@@ -9,12 +16,15 @@ public:
   }
   bool loop() {
     strip.clear();
-    for (int i = 0; i < MARQUEE_LETTER_COUNT; i++) {
-      drawLetter(position + i * 8, MARQUEE_LETTERS[i], MARQUEE_COLOR);
+    const uint8_t letter_count =
+        sizeof(MARQUEE_LETTERS) / sizeof(MARQUEE_LETTERS[0]);
+    for (int i = 0; i < letter_count; i++) {
+      drawLetter(position + i * (8 + MARQUEE_LETTER_SPACING), MARQUEE_LETTERS[i], MARQUEE_COLOR);
     }
     strip.show();
     position--;
-    if (position < (-(int)MARQUEE_LETTER_COUNT * 8))
+    if (position < (-(int)letter_count * (8 + MARQUEE_LETTER_SPACING)))
+      
       return true;
     delay(MARQUEE_DELAY);
     return false;
