@@ -2,7 +2,7 @@
 
 Some code to make Stefan's hat glow.
 
-Please see the [video](https://youtu.be/ExxrtV-L5mQ).
+Please see [this video](https://youtu.be/ExxrtV-L5mQ) or the [later version](https://youtu.be/srj0zxSEDlo).
 
 The same requisites as in [four_point_o](https://github.com/motine/four_point_o) apply.
 
